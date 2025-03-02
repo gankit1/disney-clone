@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
 import { useHistory } from "react-router-dom";
@@ -16,14 +16,31 @@ const Header = (props) => {
   const userName = useSelector(selectUserName);
   const userPhoto = useSelector(selectUserPhoto);
 
+  const setUser = useCallback(
+    (user) => {
+      if (user) {
+        dispatch(
+          setUserLoginDetails({
+            name: user.displayName,
+            email: user.email,
+            photo: user.photoURL,
+          })
+        );
+      }
+    },
+    [dispatch]
+  );
+
   useEffect(() => {
-    auth.onAuthStateChanged(async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
         history.push("/home");
       }
     });
-  }, [userName]);
+
+    return () => unsubscribe(); // Cleanup listener
+  }, [history, setUser]);
 
   const handleAuth = () => {
     if (!userName) {
@@ -35,7 +52,7 @@ const Header = (props) => {
         .catch((error) => {
           alert(error.message);
         });
-    } else if (userName) {
+    } else {
       auth
         .signOut()
         .then(() => {
@@ -44,16 +61,6 @@ const Header = (props) => {
         })
         .catch((err) => alert(err.message));
     }
-  };
-
-  const setUser = (user) => {
-    dispatch(
-      setUserLoginDetails({
-        name: user.displayName,
-        email: user.email,
-        photo: user.photoURL,
-      })
-    );
   };
 
   return (
@@ -71,26 +78,26 @@ const Header = (props) => {
               <img src="/images/home-icon.svg" alt="HOME" />
               <span>HOME</span>
             </a>
-            <a>
+            <button>
               <img src="/images/search-icon.svg" alt="SEARCH" />
               <span>SEARCH</span>
-            </a>
-            <a>
+            </button>
+            <button>
               <img src="/images/watchlist-icon.svg" alt="WATCHLIST" />
               <span>WATCHLIST</span>
-            </a>
-            <a>
+            </button>
+            <button>
               <img src="/images/original-icon.svg" alt="ORIGINALS" />
               <span>ORIGINALS</span>
-            </a>
-            <a>
+            </button>
+            <button>
               <img src="/images/movie-icon.svg" alt="MOVIES" />
               <span>MOVIES</span>
-            </a>
-            <a>
+            </button>
+            <button>
               <img src="/images/series-icon.svg" alt="SERIES" />
               <span>SERIES</span>
-            </a>
+            </button>
           </NavMenu>
           <SignOut>
             <UserImg src={userPhoto} alt={userName} />
@@ -104,6 +111,7 @@ const Header = (props) => {
   );
 };
 
+// Styled Components (No changes needed)
 const Nav = styled.nav`
   position: fixed;
   top: 0;
@@ -145,10 +153,14 @@ const NavMenu = styled.div`
   margin-right: auto;
   margin-left: 25px;
 
-  a {
+  a,
+  button {
     display: flex;
     align-items: center;
     padding: 0 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
 
     img {
       height: 20px;
@@ -192,13 +204,9 @@ const NavMenu = styled.div`
       }
     }
   }
-
-  /* @media (max-width: 768px) {
-    display: none;
-  } */
 `;
 
-const Login = styled.a`
+const Login = styled.button`
   background-color: rgba(0, 0, 0, 0.6);
   padding: 8px 16px;
   text-transform: uppercase;
@@ -206,6 +214,8 @@ const Login = styled.a`
   border: 1px solid #f9f9f9;
   border-radius: 4px;
   transition: all 0.2s ease 0s;
+  cursor: pointer;
+  color: #f9f9f9;
 
   &:hover {
     background-color: #f9f9f9;

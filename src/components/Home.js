@@ -5,7 +5,7 @@ import Originals from "./Originals";
 import Recommends from "./Recommends";
 import Trending from "./Trending";
 import Viewers from "./Viewers";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import db from "../firebase";
 import { setMovies } from "../features/movie/movieSlice";
@@ -14,45 +14,65 @@ import { selectUserName } from "../features/user/userSlice";
 const Home = (props) => {
   const dispatch = useDispatch();
   const userName = useSelector(selectUserName);
-  let recommends = [];
-  let newDisneys = [];
-  let originals = [];
-  let trending = [];
 
-  useEffect(() => {
-    console.log("hello");
+  const [movies, setMoviesState] = useState({
+    recommend: [],
+    newDisney: [],
+    original: [],
+    trending: [],
+  });
+
+  const fetchMovies = useCallback(() => {
     db.collection("movies").onSnapshot((snapshot) => {
-      snapshot.docs.map((doc) => {
-        console.log(recommends);
-        switch (doc.data().type) {
+      const recommendList = [];
+      const newDisneyList = [];
+      const originalList = [];
+      const trendingList = [];
+
+      snapshot.docs.forEach((doc) => {
+        const movieData = { id: doc.id, ...doc.data() };
+
+        switch (movieData.type) {
           case "recommend":
-            recommends = [...recommends, { id: doc.id, ...doc.data() }];
+            recommendList.push(movieData);
             break;
-
           case "new":
-            newDisneys = [...newDisneys, { id: doc.id, ...doc.data() }];
+            newDisneyList.push(movieData);
             break;
-
           case "original":
-            originals = [...originals, { id: doc.id, ...doc.data() }];
+            originalList.push(movieData);
             break;
-
           case "trending":
-            trending = [...trending, { id: doc.id, ...doc.data() }];
+            trendingList.push(movieData);
+            break;
+          default:
             break;
         }
       });
 
+      setMoviesState({
+        recommend: recommendList,
+        newDisney: newDisneyList,
+        original: originalList,
+        trending: trendingList,
+      });
+
       dispatch(
         setMovies({
-          recommend: recommends,
-          newDisney: newDisneys,
-          original: originals,
-          trending: trending,
+          recommend: recommendList,
+          newDisney: newDisneyList,
+          original: originalList,
+          trending: trendingList,
         })
       );
     });
-  }, [userName]);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (userName) {
+      fetchMovies();
+    }
+  }, [userName, fetchMovies]);
 
   return (
     <Container>
